@@ -1,4 +1,5 @@
 global using Gabe_Store.Services.UserService;
+using Gabe_Store.Services.DataStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 
@@ -34,6 +35,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddScoped<IDataStorage, DataStorage>();
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
@@ -85,8 +88,6 @@ app.Run();
 //builder.Services.AddControllers();
 //// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 //builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddScoped<IUserService, UserService>();
-//builder.Services.AddHttpContextAccessor();
 //builder.Services.AddSwaggerGen(options =>
 //{
 //    options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme

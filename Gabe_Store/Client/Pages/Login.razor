@@ -13,15 +13,34 @@
     <button type="submit" class="btn btn-primary">Do it!</button>
 </EditForm>
 
+<br />
+
+<h3>Register</h3>
+
+<EditForm Model="user" OnSubmit="HandleRegister">
+    <label for="username">Name</label>
+    <InputText id="username" @bind-Value="user.Username" />
+    <label for="password">Password</label>
+    <InputText id="password" @bind-Value="user.Password" type="password" />
+    <button type="submit" class="btn btn-primary">Do it!</button>
+</EditForm>
+
 @code {
     UserLoginDto user = new UserLoginDto();
 
     async Task HandleLogin()
     {
-        var result = await Http.PostAsJsonAsync("api/auth", user);
+        var result = await Http.PostAsJsonAsync("api/Auth/login", user);
         var token = await result.Content.ReadAsStringAsync();
         Console.WriteLine(token);
         await LocalStorage.SetItemAsync("token", token);
         await AuthStateProvider.GetAuthenticationStateAsync();
+    }
+
+    async Task HandleRegister()
+    {
+        var result = await Http.PostAsJsonAsync("api/Auth/register", user);
+        var token = await result.Content.ReadAsStringAsync();
+        Console.WriteLine(token);
     }
 }
