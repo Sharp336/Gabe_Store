@@ -13,7 +13,6 @@ namespace Gabe_Store.Server.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        public static User user = new User();
         private readonly IConfiguration _configuration;
         private readonly IDataStorage _dataStorage;
 
@@ -24,55 +23,56 @@ namespace Gabe_Store.Server.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<User>> Register(UserLoginDto request)
+        public async Task<ActionResult<string>> Register(UserLoginDto request)
         {
-            CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
-
-            user.Username = request.Username;
-            user.PasswordHash = passwordHash;
-            user.PasswordSalt = passwordSalt;
-
-            return Ok(user);
+            if ( _dataStorage.GetUserByName(request.Username) is not null )
+                return BadRequest("This useername is already taken.");
+            
+            _dataStorage.CreateNewUser(request);
+            return Ok("User successfuly created.");
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login(UserLoginDto request)
         {
-            if (user.Username != request.Username)
-            {
-                return BadRequest("User not found.");
-            }
+            var _user = _dataStorage.GetUserByName(request.Username);
 
-            if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
-            {
+            //if (_user is null )
+            //    return BadRequest("User not found.");
+
+
+            if (_user is null)
+                return BadRequest(_dataStorage.GetUsersCount().ToString());
+
+            if ( !_dataStorage.TryAuthUser(request) )
                 return BadRequest("Wrong password.");
-            }
 
-            string token = CreateToken(user);
+            string token = CreateToken(_user);
 
             var refreshToken = GenerateRefreshToken();
-            SetRefreshToken(refreshToken);
+            SetRefreshToken(refreshToken, _user);
 
             return Ok(token);
         }
 
         [HttpPost("refresh-token")]
-        public async Task<ActionResult<string>> RefreshToken()
+        public async Task<ActionResult<string>> RefreshToken(UserLoginDto request)
         {
             var refreshToken = Request.Cookies["refreshToken"];
+            var _user = _dataStorage.GetUserByName(request.Username);
 
-            if (!user.RefreshToken.Equals(refreshToken))
+            if (!_user.RefreshToken.Equals(refreshToken))
             {
                 return Unauthorized("Invalid Refresh Token.");
             }
-            else if (user.TokenExpires < DateTime.Now)
+            else if (_user.TokenExpires < DateTime.Now)
             {
                 return Unauthorized("Token expired.");
             }
 
-            string token = CreateToken(user);
+            string token = CreateToken(_user);
             var newRefreshToken = GenerateRefreshToken();
-            SetRefreshToken(newRefreshToken);
+            SetRefreshToken(newRefreshToken, _user);
 
             return Ok(token);
         }
@@ -89,7 +89,7 @@ namespace Gabe_Store.Server.Controllers
             return refreshToken;
         }
 
-        private void SetRefreshToken(RefreshToken newRefreshToken)
+        private void SetRefreshToken(RefreshToken newRefreshToken, User _user)
         {
             var cookieOptions = new CookieOptions
             {
@@ -98,18 +98,20 @@ namespace Gabe_Store.Server.Controllers
             };
             Response.Cookies.Append("refreshToken", newRefreshToken.Token, cookieOptions);
 
-            user.RefreshToken = newRefreshToken.Token;
-            user.TokenCreated = newRefreshToken.Created;
-            user.TokenExpires = newRefreshToken.Expires;
+            _user.RefreshToken = newRefreshToken.Token;
+            _user.TokenCreated = newRefreshToken.Created;
+            _user.TokenExpires = newRefreshToken.Expires;
         }
 
         private string CreateToken(User user)
         {
-            List<Claim> claims = new List<Claim>
+            List<Claim> claims = new()
             {
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, "Admin")
+                new (ClaimTypes.Name, user.Username)
             };
+
+            foreach (string role in user.Roles)
+                claims.Add(new (ClaimTypes.Role, role));
 
             var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
                 _configuration.GetSection("AppSettings:Token").Value));
@@ -126,22 +128,5 @@ namespace Gabe_Store.Server.Controllers
             return jwt;
         }
 
-        private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
-        {
-            using (var hmac = new HMACSHA512())
-            {
-                passwordSalt = hmac.Key;
-                passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
-            }
-        }
-
-        private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
-        {
-            using (var hmac = new HMACSHA512(passwordSalt))
-            {
-                var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
-                return computedHash.SequenceEqual(passwordHash);
-            }
-        }
     }
 }

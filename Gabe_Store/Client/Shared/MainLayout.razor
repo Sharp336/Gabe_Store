@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
 
 <div class="page">
     <div class="sidebar">
@@ -8,6 +9,18 @@
     <main>
         <div class="top-row px-4">
             <LoginLogoutButton />
+
+            <div style="width: 20px"/>
+
+            <AuthorizeView>
+                <Authorized>
+                    
+                </Authorized>
+
+                <NotAuthorized>
+                    <button @onclick="Register" class="btn btn-primary">Register</button>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
 
         <article class="content px-4">
@@ -15,3 +28,10 @@
         </article>
     </main>
 </div>
+
+@code{
+    void Register()
+    {
+        NavigationManager.NavigateTo("register");
+    }
+}

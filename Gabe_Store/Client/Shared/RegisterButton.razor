@@ -1,0 +1,23 @@
+﻿@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
+
+
+
+
+<AuthorizeView>
+    <Authorized>
+        <button @onclick="Register" class="btn btn-danger">Register</button>
+    </Authorized>
+    <NotAuthorized>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+
+@code {
+    void Register()
+    {
+        NavigationManager.NavigateTo("register");
+    }
+}

@@ -35,7 +35,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddScoped<IDataStorage, DataStorage>();
+var _dataStorage = new DataStorage();
+
+builder.Services.AddSingleton<IDataStorage>(_dataStorage);
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();

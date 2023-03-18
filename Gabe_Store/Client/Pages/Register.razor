@@ -1,0 +1,24 @@
+﻿@page "/register"
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILocalStorageService LocalStorage
+
+<h3>Register</h3>
+
+<EditForm Model="user" OnSubmit="HandleRegister">
+    <label for="r_username">Name</label>
+    <InputText id="r_username" @bind-Value="user.Username" />
+    <label for="r_password">Password</label>
+    <InputText id="r_password" @bind-Value="user.Password" type="password" />
+    <button type="submit" class="btn btn-primary">Do it!</button>
+</EditForm>
+
+@code {
+    UserLoginDto user = new UserLoginDto();
+
+    async Task HandleRegister()
+    {
+        var result = await Http.PostAsJsonAsync("api/Auth/register", user);
+        Console.WriteLine(result);
+    }
+}
