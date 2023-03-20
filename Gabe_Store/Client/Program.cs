@@ -1,5 +1,7 @@
-global using Microsoft.AspNetCore.Components.Authorization;
 global using Blazored.LocalStorage;
+global using Microsoft.AspNetCore.Components.Authorization;
+using MudBlazor.Services;
+
 using Gabe_Store.Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -12,5 +14,9 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddBlazoredLocalStorage();
+
+builder.Services.AddMudServices();
+
+
 
 await builder.Build().RunAsync();

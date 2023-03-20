@@ -1,37 +1,73 @@
 ﻿@inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-    <main>
-        <div class="top-row px-4">
-            <LoginLogoutButton />
 
-            <div style="width: 20px"/>
+<MudLayout>
 
-            <AuthorizeView>
-                <Authorized>
-                    
-                </Authorized>
+    <MudAppBar Elevation="1">
 
-                <NotAuthorized>
-                    <button @onclick="Register" class="btn btn-primary">Register</button>
-                </NotAuthorized>
-            </AuthorizeView>
-        </div>
+        <MudText @onclick='() => GoTo("/")' Typo="Typo.h4">GayBE Store</MudText>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+        <MudSpacer />
+
+        <AuthorizeView>
+            <Authorized>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" @onclick="Logout">Logout</MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => GoTo("login")'>Login</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+
+
+        <AuthorizeView>
+            <Authorized>
+
+            </Authorized>
+
+            <NotAuthorized>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => GoTo("register")' Style="margin-left: 20px">Register</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+
+    </MudAppBar>
+
+    
+
+    <MudMainContent >
+
+        @Body
+
+    </MudMainContent>
+
+</MudLayout>
+
+
+
 
 @code{
-    void Register()
+
+    void GoTo(string path)
     {
-        NavigationManager.NavigateTo("register");
+        NavigationManager.NavigateTo(path);
+    }
+
+    async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("token");
+        await AuthStateProvider.GetAuthenticationStateAsync();
+        GoTo("/");
+    }
+    bool open = true;
+
+    void ToggleDrawer()
+    {
+        open = !open;
     }
 }

@@ -30,6 +30,7 @@ namespace Gabe_Store.Client
             }
 
             var user = new ClaimsPrincipal(identity);
+            
             var state = new AuthenticationState(user);
 
             NotifyAuthenticationStateChanged(Task.FromResult(state));

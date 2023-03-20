@@ -1,6 +1,4 @@
 ﻿using Gabe_Store.Shared;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,37 +12,37 @@ namespace Gabe_Store.Server.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly IDataStorage _dataStorage;
+        private readonly IUsersProvider _usersProvider;
 
-        public AuthController(IConfiguration configuration, IDataStorage dataStorage)
+        public AuthController(IConfiguration configuration, IUsersProvider usersProvider)
         {
             _configuration = configuration;
-            _dataStorage = dataStorage;
+            _usersProvider = usersProvider;
         }
 
         [HttpPost("register")]
         public async Task<ActionResult<string>> Register(UserLoginDto request)
         {
-            if ( _dataStorage.GetUserByName(request.Username) is not null )
+            if (_usersProvider.GetUserByName(request.Username) is not null)
                 return BadRequest("This useername is already taken.");
-            
-            _dataStorage.CreateNewUser(request);
+
+            _usersProvider.CreateNewUser(request);
             return Ok("User successfuly created.");
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login(UserLoginDto request)
         {
-            var _user = _dataStorage.GetUserByName(request.Username);
+            var _user = _usersProvider.GetUserByName(request.Username);
 
             //if (_user is null )
             //    return BadRequest("User not found.");
 
 
             if (_user is null)
-                return BadRequest(_dataStorage.GetUsersCount().ToString());
+                return BadRequest(_usersProvider.GetUsersCount().ToString());
 
-            if ( !_dataStorage.TryAuthUser(request) )
+            if (!_usersProvider.TryAuthUser(request))
                 return BadRequest("Wrong password.");
 
             string token = CreateToken(_user);
@@ -59,7 +57,7 @@ namespace Gabe_Store.Server.Controllers
         public async Task<ActionResult<string>> RefreshToken(UserLoginDto request)
         {
             var refreshToken = Request.Cookies["refreshToken"];
-            var _user = _dataStorage.GetUserByName(request.Username);
+            var _user = _usersProvider.GetUserByName(request.Username);
 
             if (!_user.RefreshToken.Equals(refreshToken))
             {
@@ -111,7 +109,7 @@ namespace Gabe_Store.Server.Controllers
             };
 
             foreach (string role in user.Roles)
-                claims.Add(new (ClaimTypes.Role, role));
+                claims.Add(new(ClaimTypes.Role, role));
 
             var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
                 _configuration.GetSection("AppSettings:Token").Value));

@@ -1,9 +1,44 @@
 ﻿@page "/"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
 
-<PageTitle>Index</PageTitle>
+<PageTitle>GayBE</PageTitle>
 
-<h1>Hello, world!</h1>
+<MudDrawer @bind-Open="@open" Elevation="1" ClipMode="@DrawerClipMode.Docked">
 
-Welcome to your new app.
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h6">Фильтры</MudText>
+    </MudDrawerHeader>
+    
+    <MudTextField T="string"></MudTextField>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+</MudDrawer>
+
+<MudContainer>
+
+    <h1>Hello, world!</h1>
+
+    Welcome to your new app.
+
+    <MudButton OnClick="Bebra">Bebra</MudButton>
+    <MudText>@showresult</MudText>
+</MudContainer>
+
+
+@code {
+    string showresult = "empty";
+
+    async void Bebra()
+    {
+        var result = await Http.GetAsync("api/Goods/get_all");
+        showresult = result.StatusCode.ToString();
+        StateHasChanged();
+    }
+
+    bool open = false;
+
+    void ToggleDrawer()
+    {
+        open = !open;
+    }
+}

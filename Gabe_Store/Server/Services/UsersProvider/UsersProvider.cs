@@ -1,20 +1,21 @@
 ﻿using Gabe_Store.Shared;
-using System.Security.Claims;
 using System.Security.Cryptography;
 
-namespace Gabe_Store.Services.DataStorage
+namespace Gabe_Store.Services.UserProvider
 {
-    public class DataStorage : IDataStorage
+    public class UsersProvider : IUsersProvider
     {
-        private List<User> UsersStorage = new();
+        private List<User> _usersStorage = new();
 
         public void CreateNewUser(UserLoginDto user)
         {
             CreatePasswordHash(user.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
-            UsersStorage.Add(new User() { 
+            _usersStorage.Add(new User()
+            {
                 Username = user.Username,
-                Roles = new() {"Buyer"},
+                Balance = 0,
+                Roles = new() { "Buyer" },
                 PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt
             });
@@ -23,12 +24,12 @@ namespace Gabe_Store.Services.DataStorage
 
         public bool TryAuthUser(UserLoginDto user)
         {
-            var storedUser = UsersStorage.SingleOrDefault(u => u.Username == user.Username);
+            var storedUser = _usersStorage.SingleOrDefault(u => u.Username == user.Username);
 
             return VerifyPasswordHash(user.Password, storedUser.PasswordHash, storedUser.PasswordSalt);
         }
 
-        public User GetUserByName(string username) => UsersStorage.SingleOrDefault(u => u.Username == username);
+        public User? GetUserByName(string username) => _usersStorage.SingleOrDefault(u => u.Username == username);
 
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {
@@ -49,6 +50,6 @@ namespace Gabe_Store.Services.DataStorage
         }
 
 
-        public int GetUsersCount() => UsersStorage.Count(); 
+        public int GetUsersCount() => _usersStorage.Count();
     }
 }
