@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
+using static System.Net.WebRequestMethods;
 
 namespace Gabe_Store.Client
 {
@@ -38,6 +39,7 @@ namespace Gabe_Store.Client
             return state;
         }
 
+        
         public static IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
         {
             var payload = jwt.Split('.')[1];
@@ -55,5 +57,6 @@ namespace Gabe_Store.Client
             }
             return Convert.FromBase64String(base64);
         }
+
     }
 }

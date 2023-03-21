@@ -2,23 +2,68 @@
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
 
-<h3>Register</h3>
-
-<EditForm Model="user" OnSubmit="HandleRegister">
-    <label for="r_username">Name</label>
-    <InputText id="r_username" @bind-Value="user.Username" />
-    <label for="r_password">Password</label>
-    <InputText id="r_password" @bind-Value="user.Password" type="password" />
-    <button type="submit" class="btn btn-primary">Do it!</button>
-</EditForm>
-
+<MudContainer Class="pa-4" Style="width:30vw; height:30vh">
+    <MudForm @ref="form" @bind-IsValid="@success">
+        <MudTextField T="string" Label="Username" Required="true" RequiredError="User name is required!" @bind-Value="user.Username" />
+        <MudTextField T="string" Label="Email" Required="true" RequiredError="Email is required!"
+                      Validation="@(new EmailAddressAttribute() {ErrorMessage = "The email address is invalid"})" @bind-Value="user.Email" />
+        <MudTextField T="string" Label="Password" HelperText="Choose a strong password" @ref="pwField1"
+                      InputType="InputType.Password"
+                      Validation="@(new Func<string, IEnumerable<string>>(PasswordStrength))" Required="true"
+                      RequiredError="Password is required!" @bind-Value="user.Password" />
+        <MudTextField T="string"
+                      Label="Password" HelperText="Repeat the password" InputType="InputType.Password"
+                      Validation="@(new Func<string, string>(PasswordMatch))" />
+        <div class="d-flex">
+            <MudRadioGroup T="string" Required="true" RequiredError="Account type is required!" @bind-SelectedOption="user.Role">
+                <MudRadio Option="@("Buyer")">Buyer</MudRadio>
+                <MudRadio Option="@("Seller")">Seller</MudRadio>
+            </MudRadioGroup>
+        </div>
+        <div class="d-flex align-center justify-space-between">
+            <MudCheckBox T="bool" Required="true" RequiredError="You must agree" Label="I realize that i'll be scammed anyway" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" OnClick="HandleRegister" Class="ml-auto">Register</MudButton>
+        </div>
+    </MudForm>
+</MudContainer>
 @code {
-    UserLoginDto user = new UserLoginDto();
+    bool success;
+    MudTextField<string> pwField1;
+    MudForm form;
+
+    private IEnumerable<string> PasswordStrength(string pw)
+    {
+        if (string.IsNullOrWhiteSpace(pw))
+        {
+            yield return "Password is required!";
+            yield break;
+        }
+        if (pw.Length < 8)
+            yield return "Password must be at least of length 8";
+        if (!Regex.IsMatch(pw, @"[A-Z]"))
+            yield return "Password must contain at least one capital letter";
+        if (!Regex.IsMatch(pw, @"[a-z]"))
+            yield return "Password must contain at least one lowercase letter";
+        if (!Regex.IsMatch(pw, @"[0-9]"))
+            yield return "Password must contain at least one digit";
+    }
+
+    private string PasswordMatch(string arg)
+    {
+        if (pwField1.Value != arg)
+            return "Passwords don't match";
+        return null;
+    }
+
+    UserRegisterDto user = new ();
 
     async Task HandleRegister()
     {
         var result = await Http.PostAsJsonAsync("api/Auth/register", user);
-        Console.WriteLine(result);
+        NavigationManager.NavigateTo("/login");
     }
 }

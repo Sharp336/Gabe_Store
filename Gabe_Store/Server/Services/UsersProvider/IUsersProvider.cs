@@ -4,11 +4,12 @@ namespace Gabe_Store.Services.UserProvider
 {
     public interface IUsersProvider
     {
-        public int GetUsersCount();
-        public void CreateNewUser(UserLoginDto user);
+        public void CreateNewUser(UserRegisterDto user);
 
         public bool TryAuthUser(UserLoginDto user);
 
-        public User? GetUserByName(string username);
+        public User? TryGetUserByName(string username);
+
+        public bool TryAdjustUserBalance(string username, long amount);
     }
 }

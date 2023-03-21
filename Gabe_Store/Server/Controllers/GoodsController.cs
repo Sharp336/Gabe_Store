@@ -1,17 +1,7 @@
-﻿using Gabe_Store.Shared;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
-using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Headers;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Security.Principal;
-using System.Text;
 using System.Text.Json;
-using static System.Net.WebRequestMethods;
-
 namespace Gabe_Store.Server.Controllers
 {
     [Route("api/[controller]")]
@@ -19,86 +9,151 @@ namespace Gabe_Store.Server.Controllers
     [Authorize]
     public class GoodsController : ControllerBase
     {
-        private readonly IUsersProvider _usersProvider;
         private readonly IGoodsProvider _goodsProvider;
+        private readonly IUsersProvider _usersProvider;
 
         public GoodsController(IUsersProvider usersProvider, IGoodsProvider goodsProvider)
         {
-            _usersProvider = usersProvider;
             _goodsProvider = goodsProvider;
+            _usersProvider = usersProvider;
         }
-
-        //[HttpGet("get_all")]
-        //[AllowAnonymous]
-        //public async Task<ActionResult<List<Good>>> GetAll()
-        //{
-        //    return _goodsProvider.GetAll();
-        //}
 
         [HttpGet("get_all")]
         [AllowAnonymous]
-        public async Task<ActionResult<string>> GetAll()
+        public async Task<ActionResult<List<Good>>> GetAll()
+        {
+            return _goodsProvider.GetAll();
+        }
+
+        [HttpPost("TryAdjustUserBalance")]
+        [AllowAnonymous]
+        public async Task<ActionResult<string>> TryAdjustUserBalance(long amount)
         {
             string token = Request.Headers[HeaderNames.Authorization];
-            if (!string.IsNullOrEmpty(token))
-            {
-                var identity = GetFuckingNameFromJWT(token);
-                return identity;
-            }
-            return BadRequest();
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest("Failed to get the token.");
+
+            string rname = GetNameFromJWT(token);
+
+            if (string.IsNullOrEmpty(rname))
+                return BadRequest("Failed to parse the token.");
+
+            var user = _usersProvider.TryGetUserByName(rname);
+
+            if (user is null)
+                return BadRequest("Failed to find user by name");
+
+            bool a = _usersProvider.TryAdjustUserBalance(rname, amount);
+            return Ok(a);
         }
 
-        //[HttpPost("delete_by_id")]
-        //[Authorize(Roles = "Seller")]
-        //public async Task<ActionResult<string>> DeleteGoodById(Good request)
-        //{
-        //    string token = Request.Headers[HeaderNames.Authorization];
+        [HttpGet("get_balance")]
+        [Authorize(Roles = "Buyer, Seller")]
+        public async Task<ActionResult<uint>> GetBalance()
+        {
+            string token = Request.Headers[HeaderNames.Authorization];
 
-        //    if (!string.IsNullOrEmpty(token))
-        //    {
-        //        var identity = new List<Claim>(ParseClaimsFromJwt(token));
-        //    }
+            if (string.IsNullOrEmpty(token))
+                return BadRequest("Failed to get the token.");
 
-        //    _goodsProvider.DeleteGoodById(request.Id);
-        //    return Ok("Good has been successfuly deleted.");
-        //}
+            string rname = GetNameFromJWT(token);
 
-        public static IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+            if (string.IsNullOrEmpty(rname))
+                return BadRequest("Failed to parse the token.");
+
+            var user = _usersProvider.TryGetUserByName(rname);
+
+            if (user is null)
+                return BadRequest("Failed to find user by name");
+
+            return Ok(user.Balance);
+        }
+
+        [HttpPost("delete_by_id")]
+        [Authorize(Roles = "Seller")]
+        public async Task<ActionResult<string>> DeleteGoodById(int id)
+        {
+            string token = Request.Headers[HeaderNames.Authorization];
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest("Failed to get the token.");
+
+            string rname = GetNameFromJWT(token);
+
+            if (string.IsNullOrEmpty(rname))
+                return BadRequest("Failed to parse the token.");
+
+            var good = _goodsProvider.GetGoodById(id);
+
+            if (rname != good.SellerName)
+                return BadRequest("Only owner can delete his product");
+
+            if (good.IsSold)
+                return BadRequest("Product can't be deleted due to already being sold");
+
+            _goodsProvider.DeleteGoodById(id);
+            return Ok("Good has been successfuly deleted.");
+        }
+
+        [HttpPost("add_good")]
+        [Authorize(Roles = "Seller")]
+        public async Task<ActionResult<string>> AddGood(Good rgood)
+        {
+            string token = Request.Headers[HeaderNames.Authorization];
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest("Failed to get the token.");
+
+            string rname = GetNameFromJWT(token);
+
+            if (string.IsNullOrEmpty(rname))
+                return BadRequest("Failed to parse the token.");
+
+            if (rname != rgood.SellerName)
+                return BadRequest("Seller actual and good's name are different.");
+
+            _goodsProvider.Add(rgood);
+            return Ok("Good has been successfuly added.");
+        }
+
+        [HttpPost("try_buy_by_id")]
+        [Authorize(Roles = "Buyer, Seller")]
+        public async Task<ActionResult<string>> TryBuyById(int id)
+        {
+            string token = Request.Headers[HeaderNames.Authorization];
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest("Failed to get the token.");
+
+            string rname = GetNameFromJWT(token);
+
+            if (string.IsNullOrEmpty(rname))
+                return BadRequest("Failed to parse the token.");
+
+            var user = _usersProvider.TryGetUserByName(rname);
+
+            if (user is null)
+                return BadRequest("Failed to find user by name");
+
+            var good = _goodsProvider.GetGoodById(id);
+
+            if (good.IsSold)
+                return BadRequest("The good is already sold");
+
+            if (_usersProvider.TryAdjustUserBalance(user.Username, good.price * -1))
+                return BadRequest("Balance is not enough to buy this");
+
+            user.ProductsBought.Add(good);
+
+            return Ok("Good has been successfuly bought.");
+        }
+
+
+        public static string GetNameFromJWT(string jwt)
         {
             var payload = jwt.Split('.')[1];
-            var jsonBytes = ParseBase64WithoutPadding(payload);
-            var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
-            return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()));
-        }
-
-        private static byte[] ParseBase64WithoutPadding(string base64)
-        {
-            switch (base64.Length % 4)
-            {
-                case 2: base64 += "=="; break;
-                case 3: base64 += "="; break;
-            }
-            return Convert.FromBase64String(base64);
-        }
-
-        private static int IHIHIHAHA(string base64)
-        {
-            switch (base64.Length % 4)
-            {
-                case 2: return 2;
-                case 3: return 3;
-            }
-            return 0;
-        }
-
-        public static string GetFuckingNameFromJWT(string jwt)
-        {
-            var payload = jwt.Split('.')[1];
-            var jsonBytes = ParseBase64WithoutPadding(payload);
-            var brusko = IHIHIHAHA(payload);
-            var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
-            var dfnaWSikujf = keyValuePairs.SingleOrDefault(kvp => kvp.Key == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name").Value.ToString();
-            return brusko.ToString();
+            return JsonSerializer.Deserialize<Dictionary<string, object>>(Convert.FromBase64String(payload)).SingleOrDefault(kvp => kvp.Key == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name").Value.ToString();
         }
     }
 }

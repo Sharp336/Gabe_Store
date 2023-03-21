@@ -1,9 +1,11 @@
 ﻿using Gabe_Store.Shared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace Gabe_Store.Server.Controllers
 {
@@ -21,9 +23,9 @@ namespace Gabe_Store.Server.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<string>> Register(UserLoginDto request)
+        public async Task<ActionResult<string>> Register(UserRegisterDto request)
         {
-            if (_usersProvider.GetUserByName(request.Username) is not null)
+            if (_usersProvider.TryGetUserByName(request.Username) is not null)
                 return BadRequest("This useername is already taken.");
 
             _usersProvider.CreateNewUser(request);
@@ -33,14 +35,10 @@ namespace Gabe_Store.Server.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login(UserLoginDto request)
         {
-            var _user = _usersProvider.GetUserByName(request.Username);
-
-            //if (_user is null )
-            //    return BadRequest("User not found.");
-
+            var _user = _usersProvider.TryGetUserByName(request.Username);
 
             if (_user is null)
-                return BadRequest(_usersProvider.GetUsersCount().ToString());
+                return BadRequest("User not found.");
 
             if (!_usersProvider.TryAuthUser(request))
                 return BadRequest("Wrong password.");
@@ -53,11 +51,15 @@ namespace Gabe_Store.Server.Controllers
             return Ok(token);
         }
 
-        [HttpPost("refresh-token")]
-        public async Task<ActionResult<string>> RefreshToken(UserLoginDto request)
+        [HttpGet("refresh-token")]
+        public async Task<ActionResult<string>> RefreshToken()
         {
             var refreshToken = Request.Cookies["refreshToken"];
-            var _user = _usersProvider.GetUserByName(request.Username);
+            string _username = GetNameFromJWT(Request.Headers[HeaderNames.Authorization]);
+            var _user = _usersProvider.TryGetUserByName(_username);
+
+            if (_user is null)
+                return BadRequest("Failed to find user by name");
 
             if (!_user.RefreshToken.Equals(refreshToken))
             {
@@ -105,11 +107,10 @@ namespace Gabe_Store.Server.Controllers
         {
             List<Claim> claims = new()
             {
-                new (ClaimTypes.Name, user.Username)
+                new (ClaimTypes.Name, user.Username),
+                new (ClaimTypes.Role, user.Role),
+                new ("Balance", user.Balance.ToString())
             };
-
-            foreach (string role in user.Roles)
-                claims.Add(new(ClaimTypes.Role, role));
 
             var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
                 _configuration.GetSection("AppSettings:Token").Value));
@@ -123,8 +124,14 @@ namespace Gabe_Store.Server.Controllers
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
+
             return jwt;
         }
 
+        public static string GetNameFromJWT(string jwt)
+        {
+            var payload = jwt.Split('.')[1];
+            return JsonSerializer.Deserialize<Dictionary<string, object>>(Convert.FromBase64String(payload.Length % 4 == 3 ? payload + "=" : payload + "==")).SingleOrDefault(kvp => kvp.Key == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name").Value.ToString();
+        }
     }
 }

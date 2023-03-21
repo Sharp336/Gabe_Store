@@ -1,7 +1,9 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Text;
+@inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
 
 <MudThemeProvider />
 <MudDialogProvider />
@@ -14,24 +16,17 @@
 
         <MudText @onclick='() => GoTo("/")' Typo="Typo.h4">GayBE Store</MudText>
 
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => TryAdjustUserBalance(10)'>+10</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => TryAdjustUserBalance(-10)'>-10</MudButton>
         <MudSpacer />
 
+        <MudPaper Class="pa-2 border-3">Balance: @balance</MudPaper>
         <AuthorizeView>
             <Authorized>
                 <MudButton Variant="Variant.Filled" Color="Color.Error" @onclick="Logout">Logout</MudButton>
             </Authorized>
             <NotAuthorized>
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => GoTo("login")'>Login</MudButton>
-            </NotAuthorized>
-        </AuthorizeView>
-
-
-        <AuthorizeView>
-            <Authorized>
-
-            </Authorized>
-
-            <NotAuthorized>
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => GoTo("register")' Style="margin-left: 20px">Register</MudButton>
             </NotAuthorized>
         </AuthorizeView>
@@ -52,11 +47,42 @@
 
 
 @code{
+    private string balance = String.Empty;
+
+    public void Bebroid(Task<AuthenticationState> task)
+    {
+        if (task.Result.User.Claims.Count() > 1)
+        {
+            balance = task.Result.User.Claims.SingleOrDefault(clm => clm.Type == "Balance").Value;
+        }
+    }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthStateProvider.AuthenticationStateChanged += Bebroid;
+    }
 
     void GoTo(string path)
     {
         NavigationManager.NavigateTo(path);
     }
+
+    async void TryAdjustUserBalance(int amount)
+    {
+        var rresult = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", amount);
+        Console.WriteLine($"Balanc adjustment result is {rresult.StatusCode}");
+        var result = await Http.GetAsync("api/Auth/refresh-token");
+        if (result.IsSuccessStatusCode)
+        {
+            var token = await result.Content.ReadAsStringAsync();
+            Console.WriteLine(token);
+            await LocalStorage.SetItemAsync("token", token);
+            await AuthStateProvider.GetAuthenticationStateAsync();
+        }
+    }
+
 
     async Task Logout()
     {
@@ -70,4 +96,6 @@
     {
         open = !open;
     }
+
+
 }

@@ -2,19 +2,53 @@
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
 
-<h3>Login</h3>
+<MudContainer Class="pa-4" Style="width:30vw; height:15vh;">
+    <MudForm @ref="form" @bind-IsValid="@success">
+        <MudTextField T="string" Label="Username" Required="true" RequiredError="User name is required!" @bind-Value="user.Username" />
+        <MudTextField T="string" Label="Password" HelperText="Choose a strong password" @ref="pwField1"
+                      InputType="InputType.Password"
+                      Validation="@(new Func<string, IEnumerable<string>>(PasswordStrength))" Required="true"
+                      RequiredError="Password is required!" @bind-Value="user.Password" />
 
-<EditForm Model="user" OnSubmit="HandleLogin">
-    <label for="l_username">Name</label>
-    <InputText id="l_username" @bind-Value="user.Username" />
-    <label for="l_password">Password</label>
-    <InputText id="l_password" @bind-Value="user.Password" type="password" />
-    <button type="submit" class="btn btn-primary">Do it!</button>
-</EditForm>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" OnClick="HandleLogin" Class="ml-auto align-self-start">Log in</MudButton>
+
+    </MudForm>
+</MudContainer>
 
 @code {
-    UserLoginDto user = new UserLoginDto();
+    bool success;
+    MudTextField<string> pwField1;
+    MudForm form;
+
+    private IEnumerable<string> PasswordStrength(string pw)
+    {
+        if (string.IsNullOrWhiteSpace(pw))
+        {
+            yield return "Password is required!";
+            yield break;
+        }
+        if (pw.Length < 8)
+            yield return "Password must be at least of length 8";
+        if (!Regex.IsMatch(pw, @"[A-Z]"))
+            yield return "Password must contain at least one capital letter";
+        if (!Regex.IsMatch(pw, @"[a-z]"))
+            yield return "Password must contain at least one lowercase letter";
+        if (!Regex.IsMatch(pw, @"[0-9]"))
+            yield return "Password must contain at least one digit";
+    }
+
+    private string PasswordMatch(string arg)
+    {
+        if (pwField1.Value != arg)
+            return "Passwords don't match";
+        return null;
+    }
+
+    UserLoginDto user = new ();
 
     async Task HandleLogin()
     {
@@ -25,6 +59,7 @@
             Console.WriteLine(token);
             await LocalStorage.SetItemAsync("token", token);
             await AuthStateProvider.GetAuthenticationStateAsync();
+            NavigationManager.NavigateTo("/");
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿@page "/"
-@inject HttpClient Http
 @inject NavigationManager NavigationManager
 
 <PageTitle>GayBE</PageTitle>
@@ -20,20 +19,28 @@
 
     Welcome to your new app.
 
-    <MudButton OnClick="Bebra">Bebra</MudButton>
-    <MudText>@showresult</MudText>
+
+    <AuthorizeView>
+        <MudText>U're a Authorized</MudText>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Buyer">
+        <MudText>U're a Buyer</MudText>
+    </AuthorizeView>
+
+
+    <AuthorizeView Roles="Seller">
+        <MudText>U're a Seller</MudText>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Buyer, Seller">
+        <MudText>U're a CRACKED</MudText>
+    </AuthorizeView>
 </MudContainer>
 
 
 @code {
     string showresult = "empty";
-
-    async void Bebra()
-    {
-        var result = await Http.GetAsync("api/Goods/get_all");
-        showresult = result.StatusCode.ToString();
-        StateHasChanged();
-    }
 
     bool open = false;
 

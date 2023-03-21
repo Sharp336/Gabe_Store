@@ -7,15 +7,14 @@ namespace Gabe_Store.Services.UserProvider
     {
         private List<User> _usersStorage = new();
 
-        public void CreateNewUser(UserLoginDto user)
+        public void CreateNewUser(UserRegisterDto user)
         {
             CreatePasswordHash(user.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
             _usersStorage.Add(new User()
             {
                 Username = user.Username,
-                Balance = 0,
-                Roles = new() { "Buyer" },
+                Role = user.Role,
                 PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt
             });
@@ -29,7 +28,7 @@ namespace Gabe_Store.Services.UserProvider
             return VerifyPasswordHash(user.Password, storedUser.PasswordHash, storedUser.PasswordSalt);
         }
 
-        public User? GetUserByName(string username) => _usersStorage.SingleOrDefault(u => u.Username == username);
+        public User? TryGetUserByName(string username) => _usersStorage.SingleOrDefault(u => u.Username == username);
 
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {
@@ -50,6 +49,16 @@ namespace Gabe_Store.Services.UserProvider
         }
 
 
-        public int GetUsersCount() => _usersStorage.Count();
+        public bool TryAdjustUserBalance(string username, long amount)
+        {
+            var u = TryGetUserByName(username);
+            if (u == null)
+                return false;
+            if (u.Balance + amount < 0)
+                return false;
+            u.Balance = (uint)(u.Balance + amount);
+
+            return true;
+        }
     }
 }
