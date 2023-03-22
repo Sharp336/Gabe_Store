@@ -1,5 +1,8 @@
 ﻿@page "/"
 @inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>GayBE</PageTitle>
 
@@ -14,38 +17,47 @@
 </MudDrawer>
 
 <MudContainer>
+    <MudGrid Style="margin-top:1vh">
+        @foreach (GoodPublicDto g in localGoodsStorage)
+        {
+            <MudItem Style="border-width: 3px; border-color: slategray;" Class="flex-column">
+                <MudText>Good name - @g.Name</MudText>
+                <MudText>Description - @g.Description</MudText>
+                <MudText>Seller - @g.SellerName</MudText>
+                <MudText>Launcher - @g.Launcher.ToString()</MudText>
+                <MudText>Price - @g.Price.ToString()</MudText>
+            </MudItem>
+        }
+    </MudGrid>
 
-    <h1>Hello, world!</h1>
-
-    Welcome to your new app.
-
-
-    <AuthorizeView>
-        <MudText>U're a Authorized</MudText>
-    </AuthorizeView>
-
-    <AuthorizeView Roles="Buyer">
-        <MudText>U're a Buyer</MudText>
-    </AuthorizeView>
-
-
-    <AuthorizeView Roles="Seller">
-        <MudText>U're a Seller</MudText>
-    </AuthorizeView>
-
-    <AuthorizeView Roles="Buyer, Seller">
-        <MudText>U're a CRACKED</MudText>
-    </AuthorizeView>
 </MudContainer>
 
 
 @code {
-    string showresult = "empty";
+    List<GoodPublicDto> localGoodsStorage = new();
 
     bool open = false;
 
     void ToggleDrawer()
     {
         open = !open;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //var result = await Http.GetAsync("api/Goods/get_all");
+        //if (result.IsSuccessStatusCode)
+        //{
+        //    localGoodsStorage = await result.Content.ReadFromJsonAsync<List<Good>>();
+        //}
+    }
+    protected override async void OnParametersSet()
+    {
+        var result = await Http.GetAsync("api/Goods/get_all");
+        if (result.IsSuccessStatusCode)
+        {
+            localGoodsStorage = await result.Content.ReadFromJsonAsync<List<GoodPublicDto>>();
+        }
+        StateHasChanged();
     }
 }

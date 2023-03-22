@@ -56,7 +56,6 @@ namespace Gabe_Store.Services.UserProvider
                 return false;
             if (u.Balance + amount < 0)
                 return false;
-            Console.WriteLine($"Balance is {u.Balance}, amount is {amount}");
             u.Balance = (uint)(u.Balance + amount);
 
             return true;

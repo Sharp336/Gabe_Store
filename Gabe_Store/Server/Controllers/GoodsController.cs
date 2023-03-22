@@ -5,6 +5,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
 using Gabe_Store.Shared;
+using Microsoft.IdentityModel.Tokens;
+
 namespace Gabe_Store.Server.Controllers
 {
     [Route("api/[controller]")]
@@ -23,14 +25,14 @@ namespace Gabe_Store.Server.Controllers
 
         [HttpGet("get_all")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<Good>>> GetAll()
+        public async Task<ActionResult<List<GoodPublicDto>>> GetAll()
         {
-            return _goodsProvider.GetAll();
+            return _goodsProvider.GetAll().Select(g_obj => (GoodPublicDto)g_obj).ToList();
         }
 
         [HttpPost("TryAdjustUserBalance")]
         [AllowAnonymous]
-        public async Task<ActionResult<string>> TryAdjustUserBalance(UserLoginDto data)
+        public async Task<ActionResult<string>> TryAdjustUserBalance(BalanceAdjustmentDto data)
         {
             string token = Request.Headers[HeaderNames.Authorization];
 
@@ -47,32 +49,9 @@ namespace Gabe_Store.Server.Controllers
             if (user is null)
                 return BadRequest("Failed to find user by name");
 
-            bool a = _usersProvider.TryAdjustUserBalance(username_from_request, int.Parse(data.Password));
+            bool a = _usersProvider.TryAdjustUserBalance(username_from_request, data.Value);
 
-            Console.WriteLine(int.Parse(data.Password));
             return Ok(a);
-        }
-
-        [HttpGet("get_balance")]
-        [Authorize(Roles = "Buyer, Seller")]
-        public async Task<ActionResult<uint>> GetBalance()
-        {
-            string token = Request.Headers[HeaderNames.Authorization];
-
-            if (string.IsNullOrEmpty(token))
-                return BadRequest("Failed to get the token.");
-
-            string rname = GetNameFromJWT(token);
-
-            if (string.IsNullOrEmpty(rname))
-                return BadRequest("Failed to parse the token.");
-
-            var user = _usersProvider.TryGetUserByName(rname);
-
-            if (user is null)
-                return BadRequest("Failed to find user by name");
-
-            return Ok(user.Balance);
         }
 
         [HttpPost("delete_by_id")]
@@ -110,14 +89,14 @@ namespace Gabe_Store.Server.Controllers
             if (string.IsNullOrEmpty(token))
                 return BadRequest("Failed to get the token.");
 
-            string rname = GetNameFromJWT(token);
+            string username_from_request = GetNameFromJWT(token);
 
-            if (string.IsNullOrEmpty(rname))
+            if (string.IsNullOrEmpty(username_from_request))
                 return BadRequest("Failed to parse the token.");
 
-            if (rname != rgood.SellerName)
+            if (!rgood.SellerName.IsNullOrEmpty() && username_from_request != rgood.SellerName)
                 return BadRequest("Seller actual and good's name are different.");
-
+            rgood.SellerName = username_from_request;
             _goodsProvider.Add(rgood);
             return Ok("Good has been successfuly added.");
         }
@@ -146,7 +125,7 @@ namespace Gabe_Store.Server.Controllers
             if (good.IsSold)
                 return BadRequest("The good is already sold.");
 
-            if (_usersProvider.TryAdjustUserBalance(user.Username, (int)good.price * -1))
+            if (_usersProvider.TryAdjustUserBalance(user.Username, (int)good.Price * -1))
                 return BadRequest("Balance is not enough to buy this");
 
             user.ProductsBought.Add(good);

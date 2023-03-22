@@ -4,19 +4,23 @@
     {
         public int Id { get; set; }
 
-        public string Name = String.Empty;
+        public string Name { get; set; } = String.Empty;
 
-        public string Description = String.Empty;
+        public string Description { get; set; } = String.Empty;
 
-        public string Product = String.Empty;
+        public string Product { get; set; } = String.Empty;
 
-        public string SellerName = String.Empty;
+        public string SellerName { get; set; } = String.Empty;
 
-        public Launchers? Launcher;
+        public Launchers Launcher { get; set; } = Launchers.None;
 
-        public uint price = uint.MaxValue;
+        public uint Price { get; set; } = uint.MaxValue;
 
-        public bool IsSold = false;
+        public bool IsSold { get; set; } = false;
 
+        public static explicit operator GoodPublicDto(Good obj)
+        {
+            return new GoodPublicDto() { Id = obj.Id, Name = obj.Name, Description = obj.Description, SellerName = obj.SellerName, Launcher= obj.Launcher, Price = obj.Price };
+        }
     }
 }

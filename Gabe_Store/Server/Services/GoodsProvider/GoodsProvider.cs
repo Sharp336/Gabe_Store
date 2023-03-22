@@ -5,9 +5,24 @@ namespace Gabe_Store.Services.GoodsProvider
 {
     public class GoodsProvider : IGoodsProvider
     {
-        private List<Good> _goodsStorage = new();
+        private List<Good> _goodsStorage = new()
+        {
+            new()
+            {
+                Id = 1,
+                Name = "TestGood",
+                Description = "A good that is added for test",
+                Product = "SNIFF BEBRA",
+                SellerName = "Not existing seller",
+                Launcher = Launchers.None,
+                Price = 777,
+                IsSold = false
+            }
+        };
 
-        public List<Good> GetAll() => _goodsStorage;
+        private int maxindex = 1;
+
+        public List<Good> GetAll() => _goodsStorage.Where(g => !g.IsSold).ToList();
 
         public void DeleteGoodById(int id)
         {
@@ -20,7 +35,13 @@ namespace Gabe_Store.Services.GoodsProvider
         }
         public void Add(Good g)
         {
+            g.Id = maxindex + 1;
+            maxindex++;
             _goodsStorage.Add(g);
+            Console.WriteLine("Added good:  \n   " + g.Id.ToString() + " - " + g.Name + " - " + g.Description + " - " + g.Product + " - " + g.SellerName + " - " + g.Launcher + " - " + g.Price.ToString() + " - " + g.IsSold.ToString());
+            Console.WriteLine($"Current maxindex is {maxindex}");
+            Console.WriteLine($"Current goods amount is {_goodsStorage.Count}");
+
         }
 
         public void Sell(int id)

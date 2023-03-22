@@ -1,0 +1,34 @@
+﻿@inject HttpClient Http
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="localgood.Name" Label="Good name" Variant="Variant.Filled"></MudTextField>
+        <MudTextField @bind-Value="localgood.Description" Label="Good description" Variant="Variant.Filled"></MudTextField>
+        <MudTextField @bind-Value="localgood.Product" Label="Good" Variant="Variant.Filled"></MudTextField>
+        <MudSelect T="Launchers" Label="Launcher" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" @bind-Value="localgood.Launcher">
+            @foreach (var l in launchers)
+            {
+                <MudSelectItem T="Launchers" Value="l" />
+            }
+        </MudSelect>
+        <MudNumericField @bind-Value="localgood.Price" T="uint" Label="Price" Variant="Variant.Filled" Min="0" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Add">Add</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    Good localgood = new();
+    List<Launchers> launchers = new() { Launchers.Steam, Launchers.Origin, Launchers.Epic_Games_Store, Launchers.GOG_Galaxy, Launchers.Uplay, Launchers.Battle_net, Launchers.Ubisoft_Connect, Launchers.EA, Launchers.Mail_ru, Launchers.None };
+
+    async void Add()
+    {
+        var request_result = await Http.PostAsJsonAsync("api/Goods/add_good", localgood);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+    void Cancel() => MudDialog.Cancel();
+}

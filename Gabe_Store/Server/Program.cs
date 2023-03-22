@@ -25,9 +25,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 var _usersProvider = new UsersProvider();
+var _goodsProvider = new GoodsProvider();
 
 builder.Services.AddSingleton<IUsersProvider>(_usersProvider);
-builder.Services.AddScoped<IGoodsProvider, GoodsProvider>();
+builder.Services.AddSingleton<IGoodsProvider>(_goodsProvider);
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
@@ -49,7 +50,7 @@ app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
