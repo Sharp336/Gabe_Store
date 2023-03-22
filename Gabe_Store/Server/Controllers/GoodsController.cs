@@ -30,26 +30,26 @@ namespace Gabe_Store.Server.Controllers
 
         [HttpPost("TryAdjustUserBalance")]
         [AllowAnonymous]
-        public async Task<ActionResult<string>> TryAdjustUserBalance(Bebra ASRREWS)
+        public async Task<ActionResult<string>> TryAdjustUserBalance(UserLoginDto data)
         {
             string token = Request.Headers[HeaderNames.Authorization];
 
             if (string.IsNullOrEmpty(token))
                 return BadRequest("Failed to get the token.");
 
-            string rname = GetNameFromJWT(token);
+            string username_from_request = GetNameFromJWT(token);
 
-            if (string.IsNullOrEmpty(rname))
+            if (string.IsNullOrEmpty(username_from_request))
                 return BadRequest("Failed to parse the token.");
 
-            var user = _usersProvider.TryGetUserByName(rname);
+            var user = _usersProvider.TryGetUserByName(username_from_request);
 
             if (user is null)
                 return BadRequest("Failed to find user by name");
 
-            bool a = _usersProvider.TryAdjustUserBalance(rname, ASRREWS.Amount);
+            bool a = _usersProvider.TryAdjustUserBalance(username_from_request, int.Parse(data.Password));
 
-            Console.WriteLine(ASRREWS.Amount);
+            Console.WriteLine(int.Parse(data.Password));
             return Ok(a);
         }
 

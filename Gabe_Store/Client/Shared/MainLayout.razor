@@ -56,7 +56,10 @@
         if (brusko is not null)
             balance = brusko.Value;
 
+
         Console.WriteLine(brusko);
+
+        StateHasChanged();
     }
 
 
@@ -73,9 +76,7 @@
 
     async void TryAdjustUserBalance(int amount)
     {
-        var ASRREWS = new Bebra();
-        ASRREWS.Amount = amount;
-        var rresult = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", amount);
+        var rresult = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", new UserLoginDto(){Password = amount.ToString()});
         Console.WriteLine($"Balanc adjustment result is {rresult.StatusCode}");
         var result = await Http.GetAsync("api/Auth/refresh-token");
         if (result.IsSuccessStatusCode)
