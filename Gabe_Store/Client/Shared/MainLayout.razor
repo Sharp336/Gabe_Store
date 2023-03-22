@@ -5,7 +5,7 @@
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthStateProvider
 @inject HttpClient Http
-@inject IDialogService Dialog
+@inject GoodsProvider _goodsProvider
 
 <MudThemeProvider />
 <MudDialogProvider />
@@ -20,10 +20,6 @@
 
         
         <MudSpacer />
-
-        <AuthorizeView Roles="Seller">
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => AddGood()'>Add</MudButton>
-        </AuthorizeView>
 
 
         <AuthorizeView>
@@ -88,6 +84,8 @@
             {
                 await Logout();
             }
+
+
         }
     }
 
@@ -98,7 +96,7 @@
 
     async void TryAdjustUserBalance(int amount)
     {
-        var rresult = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", new BalanceAdjustmentDto() { Value = amount });
+        var rresult = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", new IntegerDto() { Value = amount });
         var result = await Http.GetAsync("api/Auth/refresh-token");
         if (result.IsSuccessStatusCode)
         {
@@ -108,10 +106,7 @@
         }
     }
 
-    void AddGood()
-    {
-        Dialog.Show<AddGoodDialog>("Add good", new DialogOptions() { NoHeader = true });
-    }
+    
 
     async Task Logout()
     {

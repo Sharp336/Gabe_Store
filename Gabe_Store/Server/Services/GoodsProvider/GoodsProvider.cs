@@ -31,16 +31,13 @@ namespace Gabe_Store.Services.GoodsProvider
 
         public Good GetGoodById(int id)
         {
-            return _goodsStorage.SingleOrDefault(sg => sg.Id == id) ?? new Good();
+            return _goodsStorage.SingleOrDefault(sg => sg.Id == id);
         }
         public void Add(Good g)
         {
             g.Id = maxindex + 1;
             maxindex++;
             _goodsStorage.Add(g);
-            Console.WriteLine("Added good:  \n   " + g.Id.ToString() + " - " + g.Name + " - " + g.Description + " - " + g.Product + " - " + g.SellerName + " - " + g.Launcher + " - " + g.Price.ToString() + " - " + g.IsSold.ToString());
-            Console.WriteLine($"Current maxindex is {maxindex}");
-            Console.WriteLine($"Current goods amount is {_goodsStorage.Count}");
 
         }
 

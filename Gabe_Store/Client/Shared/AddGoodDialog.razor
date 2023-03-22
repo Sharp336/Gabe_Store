@@ -25,10 +25,17 @@
     Good localgood = new();
     List<Launchers> launchers = new() { Launchers.Steam, Launchers.Origin, Launchers.Epic_Games_Store, Launchers.GOG_Galaxy, Launchers.Uplay, Launchers.Battle_net, Launchers.Ubisoft_Connect, Launchers.EA, Launchers.Mail_ru, Launchers.None };
 
+
+    public string Crack()
+    {
+        return "Go ffuck yourself";
+    }
+
     async void Add()
     {
         var request_result = await Http.PostAsJsonAsync("api/Goods/add_good", localgood);
-        MudDialog.Close(DialogResult.Ok(true));
+        var afterClosingDialogTask = new Task(() => Crack());
+        MudDialog.Close(DialogResult.Ok("Suck a cock"));
     }
     void Cancel() => MudDialog.Cancel();
 }

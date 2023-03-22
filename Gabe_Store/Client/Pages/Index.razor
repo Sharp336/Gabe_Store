@@ -3,21 +3,21 @@
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthStateProvider
+@inject GoodsProvider _goodsProvider
+@inject IDialogService Dialog
+@using System.Security.Claims;
+@using System.Text;
 
 <PageTitle>GayBE</PageTitle>
 
-<MudDrawer @bind-Open="@open" Elevation="1" ClipMode="@DrawerClipMode.Docked">
+<MudContainer Style="margin-top:1vh">
 
-    <MudDrawerHeader>
-        <MudText Typo="Typo.h6">Фильтры</MudText>
-    </MudDrawerHeader>
-    
-    <MudTextField T="string"></MudTextField>
 
-</MudDrawer>
+    <AuthorizeView Roles="Seller">
+        <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => AddGood()'>Add</MudButton>
+    </AuthorizeView>
 
-<MudContainer>
-    <MudGrid Style="margin-top:1vh">
+    <MudGrid Style="margin-top:2vh">
         @foreach (GoodPublicDto g in localGoodsStorage)
         {
             <MudItem Style="border-width: 3px; border-color: slategray;" Class="flex-column">
@@ -26,6 +26,11 @@
                 <MudText>Seller - @g.SellerName</MudText>
                 <MudText>Launcher - @g.Launcher.ToString()</MudText>
                 <MudText>Price - @g.Price.ToString()</MudText>
+
+                @if (true)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" @onclick='() => DeleteGoodById(g.Id)' Style="margin-left: 20px">Delete</MudButton>
+                }
             </MudItem>
         }
     </MudGrid>
@@ -34,29 +39,53 @@
 
 
 @code {
+
     List<GoodPublicDto> localGoodsStorage = new();
 
-    bool open = false;
+    string currentUser = String.Empty;
 
-    void ToggleDrawer()
+    public void UsernameCheckOnAuthStateChanged(Task<AuthenticationState> task)
     {
-        open = !open;
+        var tokenEncodedUsername = task.Result.User.Claims.SingleOrDefault(clm => clm.Type == ClaimTypes.Name);
+        if (tokenEncodedUsername is not null)
+            currentUser = tokenEncodedUsername.Value;
+        StateHasChanged();
     }
+
+
 
     protected override async Task OnInitializedAsync()
     {
-        //var result = await Http.GetAsync("api/Goods/get_all");
-        //if (result.IsSuccessStatusCode)
-        //{
-        //    localGoodsStorage = await result.Content.ReadFromJsonAsync<List<Good>>();
-        //}
+        AuthStateProvider.AuthenticationStateChanged += UsernameCheckOnAuthStateChanged;
     }
-    protected override async void OnParametersSet()
+
+
+    protected override async void OnParametersSet() => ReloadGoods();
+
+    async void AddGood()
+    {
+        await (await Dialog.ShowAsync<AddGoodDialog>("Add good", new DialogOptions() { NoHeader = true })).Result;
+        ReloadGoods();
+    }
+
+    async void DeleteGoodById(int id)
+    {
+        var result = await Http.PostAsJsonAsync("api/Goods/delete_by_id", new IntegerDto(){Value = id});
+        ReloadGoods();
+    }
+
+    async void ReloadGoods()
     {
         var result = await Http.GetAsync("api/Goods/get_all");
         if (result.IsSuccessStatusCode)
         {
             localGoodsStorage = await result.Content.ReadFromJsonAsync<List<GoodPublicDto>>();
+        }
+        var cancer = new StringBuilder();
+        foreach(var cal in localGoodsStorage)
+        {
+            cancer.Append(cal.SellerName);
+            cancer.Append(" - ");
         }
         StateHasChanged();
     }

@@ -32,7 +32,7 @@ namespace Gabe_Store.Server.Controllers
 
         [HttpPost("TryAdjustUserBalance")]
         [AllowAnonymous]
-        public async Task<ActionResult<string>> TryAdjustUserBalance(BalanceAdjustmentDto data)
+        public async Task<ActionResult<string>> TryAdjustUserBalance(IntegerDto data)
         {
             string token = Request.Headers[HeaderNames.Authorization];
 
@@ -56,7 +56,7 @@ namespace Gabe_Store.Server.Controllers
 
         [HttpPost("delete_by_id")]
         [Authorize(Roles = "Seller")]
-        public async Task<ActionResult<string>> DeleteGoodById(int id)
+        public async Task<ActionResult<string>> DeleteGoodById(IntegerDto id)
         {
             string token = Request.Headers[HeaderNames.Authorization];
 
@@ -68,7 +68,8 @@ namespace Gabe_Store.Server.Controllers
             if (string.IsNullOrEmpty(rname))
                 return BadRequest("Failed to parse the token.");
 
-            var good = _goodsProvider.GetGoodById(id);
+            var good = _goodsProvider.GetGoodById(id.Value);
+
 
             if (rname != good.SellerName)
                 return BadRequest("Only owner can delete his product");
@@ -76,7 +77,7 @@ namespace Gabe_Store.Server.Controllers
             if (good.IsSold)
                 return BadRequest("Product can't be deleted due to already being sold");
 
-            _goodsProvider.DeleteGoodById(id);
+            _goodsProvider.DeleteGoodById(id.Value);
             return Ok("Good has been successfuly deleted.");
         }
 
@@ -96,8 +97,10 @@ namespace Gabe_Store.Server.Controllers
 
             if (!rgood.SellerName.IsNullOrEmpty() && username_from_request != rgood.SellerName)
                 return BadRequest("Seller actual and good's name are different.");
+
             rgood.SellerName = username_from_request;
             _goodsProvider.Add(rgood);
+
             return Ok("Good has been successfuly added.");
         }
 

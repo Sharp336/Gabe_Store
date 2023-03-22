@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Gabe_Store.Shared
 {
-    public class BalanceAdjustmentDto
+    public class IntegerDto
     {
         public int Value { get; set; }
     }
