@@ -49,13 +49,14 @@ namespace Gabe_Store.Services.UserProvider
         }
 
 
-        public bool TryAdjustUserBalance(string username, long amount)
+        public bool TryAdjustUserBalance(string username, int amount)
         {
             var u = TryGetUserByName(username);
             if (u == null)
                 return false;
             if (u.Balance + amount < 0)
                 return false;
+            Console.WriteLine($"Balance is {u.Balance}, amount is {amount}");
             u.Balance = (uint)(u.Balance + amount);
 
             return true;

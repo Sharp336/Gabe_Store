@@ -1,4 +1,5 @@
 ﻿@using System.Text;
+@using System.Security.Claims;
 @inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
 @inject ILocalStorageService LocalStorage
@@ -51,10 +52,11 @@
 
     public void Bebroid(Task<AuthenticationState> task)
     {
-        if (task.Result.User.Claims.Count() > 1)
-        {
-            balance = task.Result.User.Claims.SingleOrDefault(clm => clm.Type == "Balance").Value;
-        }
+        var brusko = task.Result.User.Claims.SingleOrDefault(clm => clm.Type == ClaimTypes.UserData);
+        if (brusko is not null)
+            balance = brusko.Value;
+
+        Console.WriteLine(brusko);
     }
 
 
@@ -71,6 +73,8 @@
 
     async void TryAdjustUserBalance(int amount)
     {
+        var ASRREWS = new Bebra();
+        ASRREWS.Amount = amount;
         var rresult = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", amount);
         Console.WriteLine($"Balanc adjustment result is {rresult.StatusCode}");
         var result = await Http.GetAsync("api/Auth/refresh-token");

@@ -10,6 +10,6 @@ namespace Gabe_Store.Services.UserProvider
 
         public User? TryGetUserByName(string username);
 
-        public bool TryAdjustUserBalance(string username, long amount);
+        public bool TryAdjustUserBalance(string username, int amount);
     }
 }

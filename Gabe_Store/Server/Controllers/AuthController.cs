@@ -109,7 +109,7 @@ namespace Gabe_Store.Server.Controllers
             {
                 new (ClaimTypes.Name, user.Username),
                 new (ClaimTypes.Role, user.Role),
-                new ("Balance", user.Balance.ToString())
+                new (ClaimTypes.UserData, user.Balance.ToString())
             };
 
             var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
@@ -124,14 +124,19 @@ namespace Gabe_Store.Server.Controllers
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
+            
 
             return jwt;
         }
 
         public static string GetNameFromJWT(string jwt)
         {
-            var payload = jwt.Split('.')[1];
-            return JsonSerializer.Deserialize<Dictionary<string, object>>(Convert.FromBase64String(payload.Length % 4 == 3 ? payload + "=" : payload + "==")).SingleOrDefault(kvp => kvp.Key == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name").Value.ToString();
+            jwt = jwt[7..];
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(jwt);
+            var tokenS = jsonToken as JwtSecurityToken;
+            var aaa = tokenS.Claims.SingleOrDefault(cl => cl.Type == ClaimTypes.Name).Value;
+            return aaa;
         }
     }
 }

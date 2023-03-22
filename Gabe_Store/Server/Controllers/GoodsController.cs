@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text.Json;
+using Gabe_Store.Shared;
 namespace Gabe_Store.Server.Controllers
 {
     [Route("api/[controller]")]
@@ -27,7 +30,7 @@ namespace Gabe_Store.Server.Controllers
 
         [HttpPost("TryAdjustUserBalance")]
         [AllowAnonymous]
-        public async Task<ActionResult<string>> TryAdjustUserBalance(long amount)
+        public async Task<ActionResult<string>> TryAdjustUserBalance(Bebra ASRREWS)
         {
             string token = Request.Headers[HeaderNames.Authorization];
 
@@ -44,7 +47,9 @@ namespace Gabe_Store.Server.Controllers
             if (user is null)
                 return BadRequest("Failed to find user by name");
 
-            bool a = _usersProvider.TryAdjustUserBalance(rname, amount);
+            bool a = _usersProvider.TryAdjustUserBalance(rname, ASRREWS.Amount);
+
+            Console.WriteLine(ASRREWS.Amount);
             return Ok(a);
         }
 
@@ -134,14 +139,14 @@ namespace Gabe_Store.Server.Controllers
             var user = _usersProvider.TryGetUserByName(rname);
 
             if (user is null)
-                return BadRequest("Failed to find user by name");
+                return BadRequest("Failed to find user by name.");
 
             var good = _goodsProvider.GetGoodById(id);
 
             if (good.IsSold)
-                return BadRequest("The good is already sold");
+                return BadRequest("The good is already sold.");
 
-            if (_usersProvider.TryAdjustUserBalance(user.Username, good.price * -1))
+            if (_usersProvider.TryAdjustUserBalance(user.Username, (int)good.price * -1))
                 return BadRequest("Balance is not enough to buy this");
 
             user.ProductsBought.Add(good);
@@ -152,8 +157,12 @@ namespace Gabe_Store.Server.Controllers
 
         public static string GetNameFromJWT(string jwt)
         {
-            var payload = jwt.Split('.')[1];
-            return JsonSerializer.Deserialize<Dictionary<string, object>>(Convert.FromBase64String(payload)).SingleOrDefault(kvp => kvp.Key == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name").Value.ToString();
+            jwt = jwt[7..];
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(jwt);
+            var tokenS = jsonToken as JwtSecurityToken;
+            var aaa = tokenS.Claims.SingleOrDefault(cl => cl.Type == ClaimTypes.Name).Value;
+            return aaa;
         }
     }
 }
