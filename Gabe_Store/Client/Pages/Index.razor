@@ -169,10 +169,10 @@
 
     async void TopUpBalance()
     {
-        var topUpBalanceDialog_result = await (await Dialog.ShowAsync<TopUpBalanceDialog>("Top up balance", new DialogOptions() { NoHeader = true })).Result;
-        if (topUpBalanceDialog_result.Data is true)
+        var topUpBalanceDialog_result = await (await Dialog.ShowAsync<TopUpBalanceDialog>("Top up balance", new DialogOptions() { NoHeader = true})).Result;
+        if (!topUpBalanceDialog_result.Cancelled)
         {
-            UpdateLocalToken();
+            TryAdjustUserBalance((int)topUpBalanceDialog_result.Data);
         }
     }
 

@@ -1,40 +1,109 @@
 ﻿@inject HttpClient Http
-@*https://mudblazor.com/components/form#editform-support*@
-<MudDialog>
-    <DialogContent>
-        <MudTextField @bind-Value="localgood.Name" Label="Good name" Variant="Variant.Filled"></MudTextField>
-        <MudTextField @bind-Value="localgood.Description" Label="Good description" Variant="Variant.Filled"></MudTextField>
-        <MudTextField @bind-Value="localgood.Product" Label="Good" Variant="Variant.Filled"></MudTextField>
-        <MudSelect T="Launchers" Label="Launcher" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" @bind-Value="localgood.Launcher">
-            @foreach (var l in launchers)
-            {
-                <MudSelectItem T="Launchers" Value="l" />
-            }
-        </MudSelect>
-        <MudNumericField @bind-Value="localgood.Price" T="uint" Label="Price" Variant="Variant.Filled" Min="0" />
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Crack()">Add</MudButton>
-    </DialogActions>
+@using System.Text.RegularExpressions
+
+<MudDialog Style="width: 16vw">
+	<DialogContent>
+		<MudContainer Class="d-flex flex-row">
+			<h1>@(heading.Length == 0 ? "Pay Invoice" : heading)</h1>
+			<MudImage Class=@($"{(showcc ? "" : "d-none")}") Src="@cc[ccid]" Style="margin-left: 2vw"/>
+		</MudContainer>
+		<form style="max-width:400px;" class="@(heading.Length == 0 ? "" : "d-none")" onsubmit="return false;">
+			<div class="mb-3">
+				<MudTextField T="string" Class="form-control" Style=@($"color: {getCardNumberColor}") Label="Credit card number" @bind-value="cardNumber" @onblur="Blur" />
+			</div>
+			<div class="mb-3">
+				<MudTextField T="string" Class="form-control" Label="Security code" @bind-value="securityCode" />
+			</div>
+			<div class="mb-3">
+				<MudNumericField T="int" Class="form-control" Label="Amount to pay" @bind-value="amountToPay" Min="1"/>
+			</div>
+		</form>
+		<MudText>@alertText</MudText>
+		<MudButton type="submit" Class=@($"btn btn-primary {(showMainButtons ? "" : "d-none")}") OnClick="Submit">Submit</MudButton>&nbsp;&nbsp;
+	</DialogContent>
+	<DialogActions>
+		<MudButton Class=@($"btn btn-primary {(showMainButtons ? "" : "d-none")}") OnClick="Cancel">Cancel</MudButton>
+		<MudButton Class=@($"btn btn-primary {(confirmButtonText.Length == 0 ? "d-none" : "")}") OnClick="Confirm">@confirmButtonText</MudButton>
+	</DialogActions>
 </MudDialog>
 
+
+
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+	[CascadingParameter] MudDialogInstance MudDialog { get; set; }
 
-    Good localgood = new();
-    List<Launchers> launchers = new() { Launchers.Steam, Launchers.Origin, Launchers.Epic_Games_Store, Launchers.GOG_Galaxy, Launchers.Uplay, Launchers.Battle_net, Launchers.Ubisoft_Connect, Launchers.EA, Launchers.Mail_ru, Launchers.None };
+	public string getCardNumberColor()
+	{
+		return (ValidateCreditCardNumber() ? "#0a0" : (cardNumber.Length == 0 ? "#000" : "red"));
+	}
 
+	string heading = "";
+	string cardNumber = "", securityCode = "";
+	int ccid = 0;
+	int amountToPay = 100;
+	string[] cc = { "/img/blank.png", "/img/blank.png", "/img/blank.png", "/img/amex.png", "/img/visa.png", "/img/mastercard.png", "/img/discover.png", "/img/blank.png", "/img/blank.png", "/img/blank.png" };
+	bool showMainButtons = true, showcc = true;
+	string confirmButtonText = "", alertText = "";
 
-    public string Crack()
-    {
-        return "Go ffuck yourself";
-    }
+	bool ValidateCreditCardNumber() // The Luhn Check
+	{
+		var ccnum = cardNumber.Replace(" ", "");
+		if (string.IsNullOrWhiteSpace(ccnum) || ccnum.Length < 15 || ccnum.Length > 16)
+			return false;
+		var rev = ccnum.Reverse(); // Luhn check approaches the card number in reversed order
+		int sum = 0, i = 0;
+		foreach (char c in rev)
+		{
+			if (c < '0' || c > '9')
+				return false;
+			int tmp = c - '0';
+			if ((i & 1) != 0)
+			{
+				tmp <<= 1;
+				if (tmp > 9)
+					tmp -= 9;
+			}
+			sum += tmp;
+			i++;
+		}
+		return ((sum % 10) == 0);
+	}
 
-    async void TryAdjustUserBalance(int amount)
-    {
-        var request_result = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", new IntegerDto() { Value = amount });
-        MudDialog.Close(DialogResult.Ok(request_result.IsSuccessStatusCode));
-    }
-    void Cancel() => MudDialog.Cancel();
+	async Task Submit()
+	{
+		if (cardNumber.Length == 0 || securityCode.Length == 0)
+		{
+			confirmButtonText = "";
+			alertText = "Both the credit card number and security code are required.";
+			await Task.Delay(100);
+			return;
+		}
+		else if (!ValidateCreditCardNumber())
+		{
+			confirmButtonText = "Use this Card Number";
+			alertText = "The credit card number " + cardNumber + " could not be verified. Are you sure you want to use it?";
+			await Task.Delay(100);
+			return;
+		}
+		await Confirm();
+	}
+
+	void Blur()
+	{
+		cardNumber = Regex.Replace(cardNumber.Trim(), "[^0-9 ]", "");
+		ccid = (cardNumber.Length == 0) ? 0 : (cardNumber[0] - '0');
+	}
+
+	async Task Confirm()
+	{
+		confirmButtonText = String.Empty;
+		alertText = String.Empty;
+		showcc = false;
+		showMainButtons = false;
+		heading = "Processing payment... Thank you.";
+		await Task.Delay(2100);
+		MudDialog.Close(DialogResult.Ok(amountToPay));
+	}
+
+	void Cancel() => MudDialog.Cancel();
 }
