@@ -1,7 +1,4 @@
-﻿using Gabe_Store.Shared;
-using Microsoft.AspNetCore.Mvc;
-
-namespace Gabe_Store.Services.GoodsProvider
+﻿namespace Gabe_Store.Services.GoodsProvider
 {
     public class GoodsProvider : IGoodsProvider
     {

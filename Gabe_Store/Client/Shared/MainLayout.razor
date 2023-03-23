@@ -12,114 +12,13 @@
 <MudSnackbarProvider />
 
 
-<MudLayout>
-
-    <MudAppBar Elevation="1">
-
-        <MudText @onclick='() => GoTo("/")' Typo="Typo.h4">GayBe Store</MudText>
-
-        
-        <MudSpacer />
-
-
-        <AuthorizeView>
-            <Authorized>
-
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => TryAdjustUserBalance(10)' Style="margin-left: 20px">+10</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => TryAdjustUserBalance(-10)'>-10</MudButton>
-
-                <MudPaper Class="pa-2 border-3" Style="margin-left: 20px">Balance: @balance</MudPaper>
-                <MudButton Variant="Variant.Filled" Color="Color.Error" @onclick="Logout" Style="margin-left: 20px">Logout</MudButton>
-            </Authorized>
-            <NotAuthorized>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => GoTo("login")'>Login</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => GoTo("register")' Style="margin-left: 20px">Register</MudButton>
-            </NotAuthorized>
-        </AuthorizeView>
-
-    </MudAppBar>
-
-    
-
-    <MudMainContent >
-
-        @Body
-
-    </MudMainContent>
-
-</MudLayout>
+@Body
 
 
 
 
 @code{
-    private string balance = String.Empty;
-
-    public void BalanceCheckOnAuthStateChanged(Task<AuthenticationState> task)
-    {
-        var tokenEncodedBalance = task.Result.User.Claims.SingleOrDefault(clm => clm.Type == ClaimTypes.UserData);
-        if (tokenEncodedBalance is not null)
-            balance = tokenEncodedBalance.Value;
-        StateHasChanged();
-    }
-
-
-
-    protected override async Task OnInitializedAsync()
-    {
-        AuthStateProvider.AuthenticationStateChanged += BalanceCheckOnAuthStateChanged;
-
-        var storedtoken = await LocalStorage.GetItemAsStringAsync("token");
-        if(storedtoken is not null)
-        {
-            var result = await Http.GetAsync("api/Auth/refresh-token");
-            if (result.IsSuccessStatusCode)
-            {
-                var token = await result.Content.ReadAsStringAsync();
-                await LocalStorage.SetItemAsync("token", token);
-                await AuthStateProvider.GetAuthenticationStateAsync();
-                NavigationManager.NavigateTo("/");
-            }
-            else
-            {
-                await Logout();
-            }
-
-
-        }
-    }
-
-    void GoTo(string path)
-    {
-        NavigationManager.NavigateTo(path);
-    }
-
-    async void TryAdjustUserBalance(int amount)
-    {
-        var rresult = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", new IntegerDto() { Value = amount });
-        var result = await Http.GetAsync("api/Auth/refresh-token");
-        if (result.IsSuccessStatusCode)
-        {
-            var token = await result.Content.ReadAsStringAsync();
-            await LocalStorage.SetItemAsync("token", token);
-            await AuthStateProvider.GetAuthenticationStateAsync();
-        }
-    }
-
     
-
-    async Task Logout()
-    {
-        await LocalStorage.RemoveItemAsync("token");
-        await AuthStateProvider.GetAuthenticationStateAsync();
-        GoTo("/");
-    }
-    bool open = true;
-
-    void ToggleDrawer()
-    {
-        open = !open;
-    }
 
 
 }

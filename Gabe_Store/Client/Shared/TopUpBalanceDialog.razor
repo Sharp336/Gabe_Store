@@ -1,5 +1,5 @@
 ﻿@inject HttpClient Http
-
+@*https://mudblazor.com/components/form#editform-support*@
 <MudDialog>
     <DialogContent>
         <MudTextField @bind-Value="localgood.Name" Label="Good name" Variant="Variant.Filled"></MudTextField>
@@ -15,7 +15,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Add">Add</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Crack()">Add</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -25,9 +25,15 @@
     Good localgood = new();
     List<Launchers> launchers = new() { Launchers.Steam, Launchers.Origin, Launchers.Epic_Games_Store, Launchers.GOG_Galaxy, Launchers.Uplay, Launchers.Battle_net, Launchers.Ubisoft_Connect, Launchers.EA, Launchers.Mail_ru, Launchers.None };
 
-    async void Add()
+
+    public string Crack()
     {
-        var request_result = await Http.PostAsJsonAsync("api/Goods/add_good", localgood);
+        return "Go ffuck yourself";
+    }
+
+    async void TryAdjustUserBalance(int amount)
+    {
+        var request_result = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", new IntegerDto() { Value = amount });
         MudDialog.Close(DialogResult.Ok(request_result.IsSuccessStatusCode));
     }
     void Cancel() => MudDialog.Cancel();

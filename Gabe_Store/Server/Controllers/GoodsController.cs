@@ -106,7 +106,7 @@ namespace Gabe_Store.Server.Controllers
 
         [HttpPost("try_buy_by_id")]
         [Authorize(Roles = "Buyer, Seller")]
-        public async Task<ActionResult<string>> TryBuyById(int id)
+        public async Task<ActionResult<string>> TryBuyById(IntegerDto id)
         {
             string token = Request.Headers[HeaderNames.Authorization];
 
@@ -123,14 +123,18 @@ namespace Gabe_Store.Server.Controllers
             if (user is null)
                 return BadRequest("Failed to find user by name.");
 
-            var good = _goodsProvider.GetGoodById(id);
+            var good = _goodsProvider.GetGoodById(id.Value);
 
             if (good.IsSold)
                 return BadRequest("The good is already sold.");
 
-            if (_usersProvider.TryAdjustUserBalance(user.Username, (int)good.Price * -1))
+            if (!_usersProvider.TryAdjustUserBalance(good.SellerName, (int)good.Price))
+                return BadRequest("Couldn't find seller");
+
+            if (!_usersProvider.TryAdjustUserBalance(user.Username, (int)good.Price * -1))
                 return BadRequest("Balance is not enough to buy this");
 
+            good.IsSold = true;
             user.ProductsBought.Add(good);
 
             return Ok("Good has been successfuly bought.");

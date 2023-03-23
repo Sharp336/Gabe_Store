@@ -10,83 +10,205 @@
 
 <PageTitle>GayBE</PageTitle>
 
-<MudContainer Style="margin-top:1vh">
+<MudLayout>
+
+    <MudAppBar Elevation="1">
+
+        <MudText @onclick='() => GoTo("/")' Typo="Typo.h4">GayBe Store</MudText>
 
 
-    <AuthorizeView Roles="Seller">
-        <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => AddGood()'>Add</MudButton>
-    </AuthorizeView>
+        <MudSpacer />
 
-    <MudGrid Style="margin-top:2vh">
-        @foreach (GoodPublicDto g in localGoodsStorage)
-        {
-            <MudItem Style="border-width: 3px; border-color: slategray;" Class="flex-column">
-                <MudText>Good name - @g.Name</MudText>
-                <MudText>Description - @g.Description</MudText>
-                <MudText>Seller - @g.SellerName</MudText>
-                <MudText>Launcher - @g.Launcher.ToString()</MudText>
-                <MudText>Price - @g.Price.ToString()</MudText>
 
-                @if (true)
+        <AuthorizeView Roles="Buyer, Seller">
+            <Authorized>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => TryAdjustUserBalance(10)' Style="margin-left: 20px">+10</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => TryAdjustUserBalance(-10)'>-10</MudButton>
+
+                <MudPaper Class="pa-2 border-3" Style="margin-left: 20px" @onclick='() => TopUpBalance()'>Balance: @balance</MudPaper>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" @onclick="Logout" Style="margin-left: 20px">Logout</MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => GoTo("login")'>Login</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => GoTo("register")' Style="margin-left: 20px">Register</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="@open" Elevation="1" ClipMode="@DrawerClipMode.Docked">
+
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Фильтры</MudText>
+        </MudDrawerHeader>
+
+        <MudTextField T="string"></MudTextField>
+
+    </MudDrawer>
+
+    <MudMainContent>
+
+        <MudContainer Style="margin-top:1vh">
+
+
+            <AuthorizeView Roles="Seller">
+                <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Secondary" @onclick='() => AddGood()'>Add</MudButton>
+            </AuthorizeView>
+
+            <MudGrid Style="margin-top:2vh">
+                @foreach (GoodPublicDto g in localGoodsStorage)
                 {
-                    <MudButton Variant="Variant.Filled" Color="Color.Error" @onclick='() => DeleteGoodById(g.Id)' Style="margin-left: 20px">Delete</MudButton>
-                }
-            </MudItem>
-        }
-    </MudGrid>
+                    <MudItem Style="border-width: 3px; border-color: slategray;" Class="flex-column">
+                        <MudText>Good name - @g.Name</MudText>
+                        <MudText>Description - @g.Description</MudText>
+                        <MudText>Seller - @g.SellerName</MudText>
+                        <MudText>Launcher - @g.Launcher.ToString()</MudText>
+                        <MudText>Price - @g.Price.ToString()</MudText>
 
-</MudContainer>
+                        @if (g.SellerName == currentUser)
+                        {
+                            <AuthorizeView Roles="Seller">
+                                <MudButton Variant="Variant.Filled" Color="Color.Error" @onclick='() => DeleteGoodById(g.Id)' Style="margin-left: 20px">Delete</MudButton>
+                            </AuthorizeView>
+                        }
+                        else
+                        {
+                            <AuthorizeView Roles="Buyer, Seller">
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" @onclick='() => BuyGoodById(g.Id)' Style="margin-left: 20px">Buy</MudButton>
+                            </AuthorizeView>
+                        }
+                    </MudItem>
+                }
+            </MudGrid>
+
+        </MudContainer>
+
+    </MudMainContent>
+
+</MudLayout>
 
 
 @code {
+
+    private string balance = String.Empty;
 
     List<GoodPublicDto> localGoodsStorage = new();
 
     string currentUser = String.Empty;
 
-    public void UsernameCheckOnAuthStateChanged(Task<AuthenticationState> task)
-    {
-        var tokenEncodedUsername = task.Result.User.Claims.SingleOrDefault(clm => clm.Type == ClaimTypes.Name);
-        if (tokenEncodedUsername is not null)
-            currentUser = tokenEncodedUsername.Value;
-        StateHasChanged();
-    }
-
-
+    bool open = false;
 
     protected override async Task OnInitializedAsync()
     {
+        AuthStateProvider.AuthenticationStateChanged += BalanceCheckOnAuthStateChanged;
         AuthStateProvider.AuthenticationStateChanged += UsernameCheckOnAuthStateChanged;
+        UpdateLocalToken();
     }
 
+    protected override async void OnParametersSet() => UpdateLocalGoods();
 
-    protected override async void OnParametersSet() => ReloadGoods();
-
-    async void AddGood()
+    void GoTo(string path)
     {
-        await (await Dialog.ShowAsync<AddGoodDialog>("Add good", new DialogOptions() { NoHeader = true })).Result;
-        ReloadGoods();
+        NavigationManager.NavigateTo(path);
     }
 
-    async void DeleteGoodById(int id)
+    async Task Logout()
     {
-        var result = await Http.PostAsJsonAsync("api/Goods/delete_by_id", new IntegerDto(){Value = id});
-        ReloadGoods();
+        await LocalStorage.RemoveItemAsync("token");
+        await AuthStateProvider.GetAuthenticationStateAsync();
+        GoTo("/");
     }
 
-    async void ReloadGoods()
+    async void UpdateLocalGoods()
     {
         var result = await Http.GetAsync("api/Goods/get_all");
         if (result.IsSuccessStatusCode)
         {
             localGoodsStorage = await result.Content.ReadFromJsonAsync<List<GoodPublicDto>>();
+            StateHasChanged();
         }
-        var cancer = new StringBuilder();
-        foreach(var cal in localGoodsStorage)
+    }
+
+    async void UpdateLocalToken()
+    {
+        var storedtoken = await LocalStorage.GetItemAsStringAsync("token");
+        if (storedtoken is not null)
         {
-            cancer.Append(cal.SellerName);
-            cancer.Append(" - ");
+            var result = await Http.GetAsync("api/Auth/refresh-token");
+            if (result.IsSuccessStatusCode)
+            {
+                var token = await result.Content.ReadAsStringAsync();
+                await LocalStorage.SetItemAsync("token", token);
+                await AuthStateProvider.GetAuthenticationStateAsync();
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                await Logout();
+            }
         }
-        StateHasChanged();
+    }
+
+    public void BalanceCheckOnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        var tokenEncodedBalance = task.Result.User.Claims.SingleOrDefault(clm => clm.Type == ClaimTypes.UserData);
+        if (tokenEncodedBalance is not null){
+            balance = tokenEncodedBalance.Value;
+            StateHasChanged();
+        }
+    }
+
+    async void TryAdjustUserBalance(int amount)
+    {
+        var request_result = await Http.PostAsJsonAsync("api/Goods/TryAdjustUserBalance", new IntegerDto() { Value = amount });
+        if (request_result.IsSuccessStatusCode){
+            UpdateLocalToken();
+        }
+    }
+
+    async void TopUpBalance()
+    {
+        var topUpBalanceDialog_result = await (await Dialog.ShowAsync<TopUpBalanceDialog>("Top up balance", new DialogOptions() { NoHeader = true })).Result;
+        if (topUpBalanceDialog_result.Data is true)
+        {
+            UpdateLocalToken();
+        }
+    }
+
+    public void UsernameCheckOnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        var tokenEncodedUsername = task.Result.User.Claims.SingleOrDefault(clm => clm.Type == ClaimTypes.Name);
+        if (tokenEncodedUsername is not null)
+        {
+            currentUser = tokenEncodedUsername.Value;
+            StateHasChanged();
+        }
+    }
+
+    async void AddGood()
+    {
+        var addgood_result = await (await Dialog.ShowAsync<AddGoodDialog>("Add good", new DialogOptions() { NoHeader = true })).Result;
+        if (addgood_result.Data is true) { 
+            UpdateLocalGoods(); 
+        }
+    }
+
+    async void DeleteGoodById(int id)
+    {
+        var request_result = await Http.PostAsJsonAsync("api/Goods/delete_by_id", new IntegerDto() { Value = id });
+        if (request_result.IsSuccessStatusCode){
+            UpdateLocalGoods();
+        }
+    }
+
+    async void BuyGoodById(int id)
+    {
+        var request_result = await Http.PostAsJsonAsync("api/Goods/try_buy_by_id", new IntegerDto() { Value = id });
+        if (request_result.IsSuccessStatusCode)
+        {
+            UpdateLocalGoods();
+            UpdateLocalToken();
+        }
     }
 }
