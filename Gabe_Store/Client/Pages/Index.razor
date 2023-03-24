@@ -40,10 +40,24 @@
     <MudDrawer @bind-Open="@open" Elevation="1" ClipMode="@DrawerClipMode.Docked">
 
         <MudDrawerHeader>
-            <MudText Typo="Typo.h6">Фильтры</MudText>
+            <MudText Typo="Typo.h6">My purchases:</MudText>
         </MudDrawerHeader>
 
-        <MudTextField T="string"></MudTextField>
+        <MudDrawerContainer>
+            <MudGrid Style="margin-top:2vh">
+                @foreach (Good g in localGoodsStorage)
+                {
+                    <MudItem Style="border-width: 3px; border-color: slategray;" Class="flex-column">
+                        <MudText>Good name - @g.Name</MudText>
+                        <MudText>Description - @g.Description</MudText>
+                        <MudText Style="color: lawngreen">Product - @g.Product</MudText>
+                        <MudText>Seller - @g.SellerName</MudText>
+                        <MudText>Launcher - @g.Launcher.ToString()</MudText>
+                        <MudText>Price - @g.Price.ToString()</MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudDrawerContainer>
 
     </MudDrawer>
 
@@ -57,7 +71,7 @@
             </AuthorizeView>
 
             <MudGrid Style="margin-top:2vh">
-                @foreach (GoodPublicDto g in localGoodsStorage)
+                @foreach (GoodPublicDto g in localPublicGoodsStorage)
                 {
                     <MudItem Style="border-width: 3px; border-color: slategray;" Class="flex-column">
                         <MudText>Good name - @g.Name</MudText>
@@ -93,7 +107,9 @@
 
     private string balance = String.Empty;
 
-    List<GoodPublicDto> localGoodsStorage = new();
+    List<GoodPublicDto> localPublicGoodsStorage = new();
+
+    List<Good> localGoodsStorage = new();
 
     string currentUser = String.Empty;
 
@@ -122,12 +138,20 @@
 
     async void UpdateLocalGoods()
     {
-        var result = await Http.GetAsync("api/Goods/get_all");
-        if (result.IsSuccessStatusCode)
+        var getAll_request_result = await Http.GetAsync("api/Goods/get_all");
+        if (getAll_request_result.IsSuccessStatusCode)
         {
-            localGoodsStorage = await result.Content.ReadFromJsonAsync<List<GoodPublicDto>>();
+            localPublicGoodsStorage = await getAll_request_result.Content.ReadFromJsonAsync<List<GoodPublicDto>>();
             StateHasChanged();
         }
+        var getPurchases_request_result = await Http.GetAsync("api/Goods/get_purchases");
+        if (getPurchases_request_result.IsSuccessStatusCode)
+        {
+            localGoodsStorage = await getPurchases_request_result.Content.ReadFromJsonAsync<List<Good>>();
+            open = localGoodsStorage.Count > 0;
+            StateHasChanged();
+        }
+        
     }
 
     async void UpdateLocalToken()

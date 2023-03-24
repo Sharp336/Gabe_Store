@@ -4,17 +4,17 @@
     {
         private List<Good> _goodsStorage = new()
         {
-            new()
-            {
-                Id = 1,
-                Name = "TestGood",
-                Description = "A good that is added for test",
-                Product = "SNIFF BEBRA",
-                SellerName = "Not existing seller",
-                Launcher = Launchers.None,
-                Price = 777,
-                IsSold = false
-            }
+            //new()
+            //{
+            //    Id = 1,
+            //    Name = "TestGood",
+            //    Description = "A good that is added for test",
+            //    Product = "SNIFF BEBRA",
+            //    SellerName = "Not existing seller",
+            //    Launcher = Launchers.None,
+            //    Price = 777,
+            //    IsSold = false
+            //}
         };
 
         private int maxindex = 1;

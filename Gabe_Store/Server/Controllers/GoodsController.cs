@@ -30,8 +30,30 @@ namespace Gabe_Store.Server.Controllers
             return _goodsProvider.GetAll().Select(g_obj => (GoodPublicDto)g_obj).ToList();
         }
 
+        [HttpGet("get_purchases")]
+        [Authorize(Roles = "Buyer, Seller")]
+        public async Task<ActionResult<List<Good>>> GetPurchases()
+        {
+            string token = Request.Headers[HeaderNames.Authorization];
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest("Failed to get the token.");
+
+            string username_from_request = GetNameFromJWT(token);
+
+            if (string.IsNullOrEmpty(username_from_request))
+                return BadRequest("Failed to parse the token.");
+
+            var user = _usersProvider.TryGetUserByName(username_from_request);
+
+            if (user is null)
+                return BadRequest("Failed to find user by name");
+
+            return user.ProductsBought;
+        }
+
         [HttpPost("TryAdjustUserBalance")]
-        [AllowAnonymous]
+        [Authorize(Roles = "Buyer, Seller")]
         public async Task<ActionResult<string>> TryAdjustUserBalance(IntegerDto data)
         {
             string token = Request.Headers[HeaderNames.Authorization];
