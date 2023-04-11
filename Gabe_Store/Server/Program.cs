@@ -4,6 +4,7 @@ global using Gabe_Store.Services.GoodsProvider;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Gabe_Store.Services.EmailProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,9 +27,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var _usersProvider = new UsersProvider();
 var _goodsProvider = new GoodsProvider();
+var _emailProvider = new EmailProvider();
 
 builder.Services.AddSingleton<IUsersProvider>(_usersProvider);
 builder.Services.AddSingleton<IGoodsProvider>(_goodsProvider);
+builder.Services.AddSingleton<IEmailProvider>(_emailProvider);
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();

@@ -16,8 +16,11 @@ namespace Gabe_Store.Services.UserProvider
                 Username = user.Username,
                 Role = user.Role,
                 PasswordHash = passwordHash,
-                PasswordSalt = passwordSalt
+                PasswordSalt = passwordSalt,
+                email = user.Email
             });
+
+
 
         }
 

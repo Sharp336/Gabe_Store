@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Gabe_Store.Shared;
 using Microsoft.IdentityModel.Tokens;
+using Gabe_Store.Services.EmailProvider;
 
 namespace Gabe_Store.Server.Controllers
 {
@@ -16,11 +17,13 @@ namespace Gabe_Store.Server.Controllers
     {
         private readonly IGoodsProvider _goodsProvider;
         private readonly IUsersProvider _usersProvider;
+        private readonly IEmailProvider _emailProvider;
 
-        public GoodsController(IUsersProvider usersProvider, IGoodsProvider goodsProvider)
+        public GoodsController(IUsersProvider usersProvider, IGoodsProvider goodsProvider, IEmailProvider emailProvider)
         {
             _goodsProvider = goodsProvider;
             _usersProvider = usersProvider;
+            _emailProvider = emailProvider;
         }
 
         [HttpGet("get_all")]
@@ -158,6 +161,7 @@ namespace Gabe_Store.Server.Controllers
 
             good.IsSold = true;
             user.ProductsBought.Add(good);
+            _emailProvider.SendGoodEmail(good, user.email);
 
             return Ok("Good has been successfuly bought.");
         }
